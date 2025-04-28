@@ -1,0 +1,4 @@
+certbot-etc
+openbao-data
+secrets
+.env

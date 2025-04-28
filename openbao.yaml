@@ -1,0 +1,38 @@
+services:
+  certbot:
+    image: certbot/dns-cloudflare
+    container_name: certbot
+    entrypoint: /bin/sh -c
+    command: >
+      "if [ ! -f /etc/letsencrypt/live/${HOST}/fullchain.pem ]; then
+        echo 'dns_cloudflare_api_token = ${CF_API_TOKEN}' > /etc/secrets/cloudflare.ini
+        chmod 600 /etc/secrets/cloudflare.ini
+        certbot certonly --non-interactive --agree-tos --dns-cloudflare --dns-cloudflare-credentials /etc/secrets/cloudflare.ini --dns-cloudflare-propagation-seconds 60 -d ${HOST}
+       else
+        echo 'Certificate already exists, skipping certbot.';
+       fi
+      tail -f /dev/null"
+    volumes:
+      - ./certbot-etc:/etc/letsencrypt
+      - ./secrets:/etc/secrets/ # Updated for DSM volume
+    restart: unless-stopped
+
+  openbao:
+    image: openbao/openbao:latest
+    depends_on:
+      - certbot
+    container_name: openbao
+    restart: always
+    environment:
+      VAULT_ADDR: https://${HOST}:8200
+    ports:
+      - "8200:8200"
+    volumes:
+      - ./config.hcl:/etc/openbao/config.hcl
+      - ./certbot-etc:/etc/letsencrypt  # Updated for DSM volume
+      - ./openbao-data:/opt/openbao    # Updated for DSM volume
+    command: server -config=/etc/openbao/config.hcl
+volumes:
+  certbot-etc:
+  openbao-data:
+  secrets:
