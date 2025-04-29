@@ -15,8 +15,7 @@ services:
     volumes:
       - ./certbot-etc:/etc/letsencrypt
       - ./secrets:/etc/secrets/ # Updated for DSM volume
-    restart: unless-stopped
-
+    restart: no
   openbao:
     image: openbao/openbao:latest
     depends_on:
